@@ -2,8 +2,25 @@ import tkinter as tk
 from tkinter import ttk
 import sqlite3
 
+# Ruta absoluta a la base de datos
+DB_PATH = 'app_lis_2025/mi_base_de_datos.db'
+
+# ... resto de tu código
+
+try:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    conn.commit()
+except sqlite3.Error as e:
+    print("Error al conectar a la base de datos:", e)
+finally:
+    if conn:
+        conn.close()
+
+
 # Conexión a la base de datos
-conn = sqlite3.connect('mi_base_de_datos.db')
+conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
 # Crear las tablas si no existen
