@@ -4,7 +4,7 @@ import sqlite3
 from tkinter import messagebox
 
 # Ruta absoluta a la base de datos
-DB_PATH = 'app_lis_2025/mi_base_de_datos.db'
+DB_PATH = 'mi_base_de_datos.db'
 
 # Conexión a la base de datos
 try:
@@ -98,6 +98,14 @@ def actualizar_registro():
         messagebox.showerror("Error", "Por favor, seleccione un registro para actualizar.")
         return
 
+    # Obtener el id_detalle_registro seleccionado
+    seleccion = tree_detalles.selection()
+    if not seleccion:
+        messagebox.showerror("Error", "Por favor, seleccione un detalle de registro para actualizar.")
+        return
+    
+    id_detalle_registro = tree_detalles.item(seleccion[0])['values'][0]
+
     fecha_registro = fecha_registro_entry.get()
     fecha_detalle = fecha_detalle_entry.get()
     articulo = articulo_entry.get()
@@ -113,12 +121,12 @@ def actualizar_registro():
         cursor.execute("UPDATE REGISTROS SET fecha_registro = ? WHERE id_registro = ?", 
                        (fecha_registro, id_registro))
         
-        # Actualizar el detalle del registro
+        # Actualizar solo el detalle del registro seleccionado
         cursor.execute("""
             UPDATE DETALLES_REGISTROS 
             SET fecha_detalle = ?, articulo = ?, precio = ?, cantidad = ?, total = ?
-            WHERE id_registro = ?
-        """, (fecha_detalle, articulo, float(precio), float(cantidad), float(precio) * float(cantidad), id_registro))
+            WHERE id_detalle_registro = ?
+        """, (fecha_detalle, articulo, float(precio), float(cantidad), float(precio) * float(cantidad), id_detalle_registro))
         
         conn.commit()
         messagebox.showinfo("Éxito", "Registro actualizado correctamente.")
