@@ -155,9 +155,16 @@ cantidad_entry.grid(row=0, column=7, padx=5, pady=5)
 agregar_btn = tk.Button(root, text="Agregar", command=agregar_datos)
 agregar_btn.pack(pady=10)
 
-# Crear y configurar el Treeview
+# NUEVO CÓDIGO: Crear y configurar el Treeview con scrollbars
+# Crear un frame para contener el Treeview y las barras de desplazamiento
+tree_frame = tk.Frame(root)
+tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+# Crear el Treeview
 columns = ('id_detalle_registro', 'id_registro', 'fecha_registro', 'fecha_detalle', 'articulo', 'precio', 'cantidad', 'total')
-tree = ttk.Treeview(root, columns=columns, show='headings')
+tree = ttk.Treeview(tree_frame, columns=columns, show='headings')
+
+# Añadir los encabezados
 tree.heading('id_detalle_registro', text='ID Detalle Registro')
 tree.heading('id_registro', text='ID Registro')
 tree.heading('fecha_registro', text='Fecha Registro')
@@ -171,7 +178,21 @@ tree.heading('total', text='Total')
 for column in columns:
     tree.column(column, width=100)
 
-tree.pack(fill="both", expand=True)
+# Crear barra de desplazamiento vertical
+vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+vsb.pack(side='right', fill='y')
+
+# Crear barra de desplazamiento horizontal
+hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
+hsb.pack(side='bottom', fill='x')
+
+# Configurar el Treeview para usar las barras de desplazamiento
+tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+# Empaquetar el Treeview
+tree.pack(side="left", fill="both", expand=True)
+
+# Vincular el evento de selección
 tree.bind('<ButtonRelease-1>', seleccionar_fila)
 
 # Inicializar el Treeview con datos
