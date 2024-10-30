@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import sqlite3
+from tkinter import messagebox
 
 # Ruta absoluta a la base de datos
 DB_PATH = 'app_lis_2025/mi_base_de_datos.db'
@@ -61,6 +62,70 @@ def agregar_datos():
     actualizar_treeview()
     actualizar_treeview_detalles()
     limpiar_campos()
+
+# Función para eliminar un registro
+def eliminar_registro():
+    """
+    Elimina el registro seleccionado de la base de datos.
+    """
+    id_registro = id_registro_combobox.get()
+    if not id_registro:
+        messagebox.showerror("Error", "Por favor, seleccione un registro para eliminar.")
+        return
+
+    if messagebox.askyesno("Confirmar eliminación", "¿Está seguro de que desea eliminar este registro?"):
+        try:
+            # Primero, eliminar los detalles asociados
+            cursor.execute("DELETE FROM DETALLES_REGISTROS WHERE id_registro = ?", (id_registro,))
+            # Luego, eliminar el registro principal
+            cursor.execute("DELETE FROM REGISTROS WHERE id_registro = ?", (id_registro,))
+            conn.commit()
+            messagebox.showinfo("Éxito", "Registro eliminado correctamente.")
+            limpiar_campos()
+            llenar_combobox()
+            actualizar_treeview()
+            actualizar_treeview_detalles()
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo eliminar el registro: {e}")
+
+# Función para actualizar un registro
+def actualizar_registro():
+    """
+    Actualiza el registro seleccionado en la base de datos.
+    """
+    id_registro = id_registro_combobox.get()
+    if not id_registro:
+        messagebox.showerror("Error", "Por favor, seleccione un registro para actualizar.")
+        return
+
+    fecha_registro = fecha_registro_entry.get()
+    fecha_detalle = fecha_detalle_entry.get()
+    articulo = articulo_entry.get()
+    precio = precio_entry.get()
+    cantidad = cantidad_entry.get()
+
+    if not all([fecha_registro, fecha_detalle, articulo, precio, cantidad]):
+        messagebox.showerror("Error", "Por favor, complete todos los campos.")
+        return
+
+    try:
+        # Actualizar el registro principal
+        cursor.execute("UPDATE REGISTROS SET fecha_registro = ? WHERE id_registro = ?", 
+                       (fecha_registro, id_registro))
+        
+        # Actualizar el detalle del registro
+        cursor.execute("""
+            UPDATE DETALLES_REGISTROS 
+            SET fecha_detalle = ?, articulo = ?, precio = ?, cantidad = ?, total = ?
+            WHERE id_registro = ?
+        """, (fecha_detalle, articulo, float(precio), float(cantidad), float(precio) * float(cantidad), id_registro))
+        
+        conn.commit()
+        messagebox.showinfo("Éxito", "Registro actualizado correctamente.")
+        actualizar_treeview()
+        actualizar_treeview_detalles()
+    except sqlite3.Error as e:
+        messagebox.showerror("Error", f"No se pudo actualizar el registro: {e}")
 
 # Función para actualizar el Treeview principal
 def actualizar_treeview():
@@ -127,14 +192,6 @@ def limpiar_campos():
     articulo_entry.delete(0, tk.END)
     precio_entry.delete(0, tk.END)
     cantidad_entry.delete(0, tk.END)
-
-# Configuración de la ventana principal
-root = tk.Tk()
-root.title("Formulario de Artículos")
-
-# Frame para REGISTROS
-frame_registro = tk.Frame(root, padx=10, pady=10)
-frame_registro.pack(fill="x")
 
 # Función para ir al registro anterior
 def registro_anterior():
@@ -209,6 +266,23 @@ def nuevo_registro():
     fecha_registro_entry.insert(0, fecha_registro_entry.get())  # Mantener la fecha del registro
     actualizar_treeview_detalles()
 
+# Función para salir de la aplicación
+def salir_aplicacion():
+    """
+    Cierra la conexión a la base de datos y sale de la aplicación.
+    """
+    if messagebox.askyesno("Salir", "¿Está seguro de que desea salir?"):
+        conn.close()
+        root.quit()
+
+# Configuración de la ventana principal
+root = tk.Tk()
+root.title("Formulario de Artículos")
+
+# Frame para REGISTROS
+frame_registro = tk.Frame(root, padx=10, pady=10)
+frame_registro.pack(fill="x")
+
 # Botones de navegación
 btn_primer = tk.Button(frame_registro, text="<<", command=primer_registro)
 btn_primer.grid(row=0, column=0, padx=5, pady=5)
@@ -265,7 +339,9 @@ fecha_detalle_entry.grid(row=0, column=1, padx=5, pady=5)
 
 tk.Label(frame_detalle, text="Artículo").grid(row=0, column=2, padx=5, pady=5)
 articulo_entry = tk.Entry(frame_detalle)
-articulo_entry.grid(row=0, column=3, padx=5, pady=5)
+articulo_entry.grid(row=0, 
+
+ column=3, padx=5, pady=5)
 
 tk.Label(frame_detalle, text="Precio").grid(row=0, column=4, padx=5, pady=5)
 precio_entry = tk.Entry(frame_detalle)
@@ -275,9 +351,23 @@ tk.Label(frame_detalle, text="Cantidad").grid(row=0, column=6, padx=5, pady=5)
 cantidad_entry = tk.Entry(frame_detalle)
 cantidad_entry.grid(row=0, column=7, padx=5, pady=5)
 
-# Botón para agregar datos
-agregar_btn = tk.Button(root, text="Agregar", command=agregar_datos)
-agregar_btn.pack(pady=10)
+# Frame para botones CRUD
+frame_crud = tk.Frame(root, padx=10, pady=10)
+frame_crud.pack(fill="x")
+
+# Botones CRUD
+agregar_btn = tk.Button(frame_crud, text="Agregar", command=agregar_datos)
+agregar_btn.pack(side="left", padx=5)
+
+eliminar_btn = tk.Button(frame_crud, text="Eliminar", command=eliminar_registro)
+eliminar_btn.pack(side="left", padx=5)
+
+actualizar_btn = tk.Button(frame_crud, text="Actualizar", command=actualizar_registro)
+actualizar_btn.pack(side="left", padx=5)
+
+# Botón para salir
+salir_btn = tk.Button(frame_crud, text="Salir", command=salir_aplicacion)
+salir_btn.pack(side="right", padx=5)
 
 # Crear y configurar el Treeview para DETALLES_REGISTROS
 detalles_frame = tk.Frame(root)
@@ -320,8 +410,6 @@ tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 tree.pack(side="left", fill="both", expand=True)
 
 tree.bind('<ButtonRelease-1>', seleccionar_fila)
-
-
 
 # Inicializar los Treeviews con datos
 actualizar_treeview()
