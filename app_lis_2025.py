@@ -365,6 +365,9 @@ eliminar_btn.pack(side="left", padx=5)
 actualizar_btn = tk.Button(frame_crud, text="Actualizar", command=actualizar_registro)
 actualizar_btn.pack(side="left", padx=5)
 
+actualizar_tree_btn = tk.Button(frame_crud, text="Actualizar Vistas", command=actualizar_treeview)
+actualizar_tree_btn.pack(side="left", padx=5)
+
 # Botón para salir
 salir_btn = tk.Button(frame_crud, text="Salir", command=salir_aplicacion)
 salir_btn.pack(side="right", padx=5)
