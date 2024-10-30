@@ -5,47 +5,39 @@ import sqlite3
 # Ruta absoluta a la base de datos
 DB_PATH = 'app_lis_2025/mi_base_de_datos.db'
 
-# ... resto de tu código
-
+# Conexión a la base de datos
 try:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
+    # Crear las tablas si no existen
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS REGISTROS (
+        id_registro INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha_registro TEXT NOT NULL
+    )''')
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS DETALLES_REGISTROS (
+        id_detalle_registro INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha_detalle TEXT NOT NULL,
+        articulo TEXT NOT NULL,
+        precio REAL,
+        cantidad REAL,
+        total REAL,
+        id_registro INTEGER,
+        FOREIGN KEY (id_registro) REFERENCES REGISTROS(id_registro)
+    )''')
+
     conn.commit()
 except sqlite3.Error as e:
     print("Error al conectar a la base de datos:", e)
-finally:
-    if conn:
-        conn.close()
-
-
-# Conexión a la base de datos
-conn = sqlite3.connect(DB_PATH)
-cursor = conn.cursor()
-
-# Crear las tablas si no existen
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS REGISTROS (
-    id_registro INTEGER PRIMARY KEY AUTOINCREMENT,
-    fecha_registro TEXT NOT NULL
-)''')
-
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS DETALLES_REGISTROS (
-    id_detalle_registro INTEGER PRIMARY KEY AUTOINCREMENT,
-    fecha_detalle TEXT NOT NULL,
-    articulo TEXT NOT NULL,
-    precio REAL,
-    cantidad REAL,
-    total REAL,
-    id_registro INTEGER,
-    FOREIGN KEY (id_registro) REFERENCES REGISTROS(id_registro)
-)''')
-
-conn.commit()
 
 # Función para agregar datos
 def agregar_datos():
+    """
+    Agrega un nuevo registro a la base de datos.
+    """
     id_registro = id_registro_combobox.get()
     fecha_registro = fecha_registro_entry.get()
     fecha_detalle = fecha_detalle_entry.get()
@@ -72,6 +64,9 @@ def agregar_datos():
 
 # Función para actualizar el Treeview principal
 def actualizar_treeview():
+    """
+    Actualiza el Treeview principal con todos los registros de la base de datos.
+    """
     for row in tree.get_children():
         tree.delete(row)
     cursor.execute('''
@@ -85,6 +80,9 @@ def actualizar_treeview():
 
 # Función para actualizar el Treeview de detalles
 def actualizar_treeview_detalles():
+    """
+    Actualiza el Treeview de detalles con los registros correspondientes al id_registro seleccionado.
+    """
     for row in tree_detalles.get_children():
         tree_detalles.delete(row)
     id_registro = id_registro_combobox.get()
@@ -100,6 +98,9 @@ def actualizar_treeview_detalles():
 
 # Función para autocompletar los campos al seleccionar una fila
 def seleccionar_fila(event):
+    """
+    Autocompleta los campos del formulario al seleccionar una fila en el Treeview principal.
+    """
     item = tree.selection()[0]
     valores = tree.item(item, 'values')
     id_registro_combobox.set(valores[1])
@@ -117,6 +118,9 @@ def seleccionar_fila(event):
 
 # Función para limpiar los campos del formulario
 def limpiar_campos():
+    """
+    Limpia todos los campos del formulario.
+    """
     fecha_registro_entry.delete(0, tk.END)
     id_registro_combobox.set('')
     fecha_detalle_entry.delete(0, tk.END)
@@ -134,6 +138,9 @@ frame_registro.pack(fill="x")
 
 # Función para ir al registro anterior
 def registro_anterior():
+    """
+    Carga el registro anterior al actualmente seleccionado.
+    """
     current_id = id_registro_combobox.get()
     if current_id:
         cursor.execute("SELECT MAX(id_registro) FROM REGISTROS WHERE id_registro < ?", (current_id,))
@@ -144,6 +151,9 @@ def registro_anterior():
 
 # Función para ir al registro siguiente
 def registro_siguiente():
+    """
+    Carga el registro siguiente al actualmente seleccionado.
+    """
     current_id = id_registro_combobox.get()
     if current_id:
         cursor.execute("SELECT MIN(id_registro) FROM REGISTROS WHERE id_registro > ?", (current_id,))
@@ -154,25 +164,76 @@ def registro_siguiente():
 
 # Función para cargar los datos de un registro
 def cargar_registro(id_registro):
+    """
+    Carga los datos de un registro específico en el formulario.
+    """
     cursor.execute("SELECT fecha_registro FROM REGISTROS WHERE id_registro = ?", (id_registro,))
     fecha_registro = cursor.fetchone()[0]
     fecha_registro_entry.delete(0, tk.END)
     fecha_registro_entry.insert(0, fecha_registro)
     actualizar_treeview_detalles()
 
+# Función para ir al primer registro
+def primer_registro():
+    """
+    Carga el primer registro de la tabla REGISTROS.
+    """
+    cursor.execute("SELECT MIN(id_registro) FROM REGISTROS")
+    primer_id = cursor.fetchone()[0]
+    if primer_id:
+        id_registro_combobox.set(primer_id)
+        cargar_registro(primer_id)
+
+# Función para ir al último registro
+def ultimo_registro():
+    """
+    Carga el último registro de la tabla REGISTROS.
+    """
+    cursor.execute("SELECT MAX(id_registro) FROM REGISTROS")
+    ultimo_id = cursor.fetchone()[0]
+    if ultimo_id:
+        id_registro_combobox.set(ultimo_id)
+        cargar_registro(ultimo_id)
+
+# Función para crear un nuevo registro
+def nuevo_registro():
+    """
+    Crea un nuevo registro en la tabla REGISTROS y lo carga en el formulario.
+    """
+    cursor.execute("INSERT INTO REGISTROS (fecha_registro) VALUES (?)", (fecha_registro_entry.get(),))
+    conn.commit()
+    nuevo_id = cursor.lastrowid
+    id_registro_combobox.set(nuevo_id)
+    llenar_combobox()
+    limpiar_campos()
+    fecha_registro_entry.insert(0, fecha_registro_entry.get())  # Mantener la fecha del registro
+    actualizar_treeview_detalles()
+
 # Botones de navegación
+btn_primer = tk.Button(frame_registro, text="<<", command=primer_registro)
+btn_primer.grid(row=0, column=0, padx=5, pady=5)
+
 btn_anterior = tk.Button(frame_registro, text="<", command=registro_anterior)
-btn_anterior.grid(row=0, column=0, padx=5, pady=5)
+btn_anterior.grid(row=0, column=1, padx=5, pady=5)
 
 btn_siguiente = tk.Button(frame_registro, text=">", command=registro_siguiente)
 btn_siguiente.grid(row=0, column=2, padx=5, pady=5)
 
-tk.Label(frame_registro, text="ID Registro").grid(row=0, column=3, padx=5, pady=5)
+btn_ultimo = tk.Button(frame_registro, text=">>", command=ultimo_registro)
+btn_ultimo.grid(row=0, column=3, padx=5, pady=5)
+
+btn_nuevo = tk.Button(frame_registro, text="+", command=nuevo_registro)
+btn_nuevo.grid(row=0, column=4, padx=5, pady=5)
+
+tk.Label(frame_registro, text="ID Registro").grid(row=0, column=5, padx=5, pady=5)
 id_registro_combobox = ttk.Combobox(frame_registro)
-id_registro_combobox.grid(row=0, column=4, padx=5, pady=5)
+id_registro_combobox.grid(row=0, column=6, padx=5, pady=5)
 
 # Función para llenar el combobox con los ID de registros existentes
 def llenar_combobox():
+    """
+    Llena el combobox con los ID de registros existentes en la tabla REGISTROS.
+    """
     cursor.execute("SELECT id_registro FROM REGISTROS")
     registros = cursor.fetchall()
     id_registro_combobox['values'] = [registro[0] for registro in registros]
@@ -181,15 +242,18 @@ llenar_combobox()
 
 # Función para actualizar el Treeview de detalles cuando cambia el combobox
 def on_combobox_select(event):
+    """
+    Actualiza el Treeview de detalles cuando se selecciona un nuevo registro en el combobox.
+    """
     id_registro = id_registro_combobox.get()
     if id_registro:
         cargar_registro(id_registro)
 
 id_registro_combobox.bind("<<ComboboxSelected>>", on_combobox_select)
 
-tk.Label(frame_registro, text="Fecha Registro").grid(row=0, column=5, padx=5, pady=5)
+tk.Label(frame_registro, text="Fecha Registro").grid(row=0, column=7, padx=5, pady=5)
 fecha_registro_entry = tk.Entry(frame_registro)
-fecha_registro_entry.grid(row=0, column=6, padx=5, pady=5)
+fecha_registro_entry.grid(row=0, column=8, padx=5, pady=5)
 
 # Frame para DETALLES_REGISTROS
 frame_detalle = tk.Frame(root, padx=10, pady=10)
@@ -256,6 +320,8 @@ tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 tree.pack(side="left", fill="both", expand=True)
 
 tree.bind('<ButtonRelease-1>', seleccionar_fila)
+
+
 
 # Inicializar los Treeviews con datos
 actualizar_treeview()
