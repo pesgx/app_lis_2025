@@ -67,9 +67,10 @@ def agregar_datos():
                    (fecha_detalle, articulo, precio, cantidad, total, id_registro))
     conn.commit()
     actualizar_treeview()
+    actualizar_treeview_detalles()
     limpiar_campos()
 
-# Función para actualizar el Treeview
+# Función para actualizar el Treeview principal
 def actualizar_treeview():
     for row in tree.get_children():
         tree.delete(row)
@@ -81,6 +82,21 @@ def actualizar_treeview():
     rows = cursor.fetchall()
     for row in rows:
         tree.insert('', tk.END, values=row)
+
+# Nueva función para actualizar el Treeview de detalles
+def actualizar_treeview_detalles():
+    for row in tree_detalles.get_children():
+        tree_detalles.delete(row)
+    id_registro = id_registro_combobox.get()
+    if id_registro:
+        cursor.execute('''
+        SELECT id_detalle_registro, fecha_detalle, articulo, precio, cantidad, total
+        FROM DETALLES_REGISTROS
+        WHERE id_registro = ?
+        ''', (id_registro,))
+        rows = cursor.fetchall()
+        for row in rows:
+            tree_detalles.insert('', tk.END, values=row)
 
 # Función para autocompletar los campos al seleccionar una fila
 def seleccionar_fila(event):
@@ -97,6 +113,7 @@ def seleccionar_fila(event):
     precio_entry.insert(0, valores[5])
     cantidad_entry.delete(0, tk.END)
     cantidad_entry.insert(0, valores[6])
+    actualizar_treeview_detalles()
 
 # Función para limpiar los campos del formulario
 def limpiar_campos():
@@ -127,6 +144,12 @@ def llenar_combobox():
 
 llenar_combobox()
 
+# Función para actualizar el Treeview de detalles cuando cambia el combobox
+def on_combobox_select(event):
+    actualizar_treeview_detalles()
+
+id_registro_combobox.bind("<<ComboboxSelected>>", on_combobox_select)
+
 tk.Label(frame_registro, text="Fecha Registro").grid(row=0, column=2, padx=5, pady=5)
 fecha_registro_entry = tk.Entry(frame_registro)
 fecha_registro_entry.grid(row=0, column=3, padx=5, pady=5)
@@ -155,48 +178,51 @@ cantidad_entry.grid(row=0, column=7, padx=5, pady=5)
 agregar_btn = tk.Button(root, text="Agregar", command=agregar_datos)
 agregar_btn.pack(pady=10)
 
-# NUEVO CÓDIGO: Crear y configurar el Treeview con scrollbars
-# Crear un frame para contener el Treeview y las barras de desplazamiento
+# NUEVO CÓDIGO: Crear y configurar el Treeview para DETALLES_REGISTROS
+detalles_frame = tk.Frame(root)
+detalles_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+columns_detalles = ('id_detalle_registro', 'fecha_detalle', 'articulo', 'precio', 'cantidad', 'total')
+tree_detalles = ttk.Treeview(detalles_frame, columns=columns_detalles, show='headings')
+
+for col in columns_detalles:
+    tree_detalles.heading(col, text=col.replace('_', ' ').title())
+    tree_detalles.column(col, width=100)
+
+vsb_detalles = ttk.Scrollbar(detalles_frame, orient="vertical", command=tree_detalles.yview)
+vsb_detalles.pack(side='right', fill='y')
+
+hsb_detalles = ttk.Scrollbar(detalles_frame, orient="horizontal", command=tree_detalles.xview)
+hsb_detalles.pack(side='bottom', fill='x')
+
+tree_detalles.configure(yscrollcommand=vsb_detalles.set, xscrollcommand=hsb_detalles.set)
+tree_detalles.pack(side="left", fill="both", expand=True)
+
+# Crear y configurar el Treeview principal
 tree_frame = tk.Frame(root)
 tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-# Crear el Treeview
 columns = ('id_detalle_registro', 'id_registro', 'fecha_registro', 'fecha_detalle', 'articulo', 'precio', 'cantidad', 'total')
 tree = ttk.Treeview(tree_frame, columns=columns, show='headings')
 
-# Añadir los encabezados
-tree.heading('id_detalle_registro', text='ID Detalle Registro')
-tree.heading('id_registro', text='ID Registro')
-tree.heading('fecha_registro', text='Fecha Registro')
-tree.heading('fecha_detalle', text='Fecha Detalle')
-tree.heading('articulo', text='Artículo')
-tree.heading('precio', text='Precio')
-tree.heading('cantidad', text='Cantidad')
-tree.heading('total', text='Total')
+for col in columns:
+    tree.heading(col, text=col.replace('_', ' ').title())
+    tree.column(col, width=100)
 
-# Ajustar el ancho de las columnas
-for column in columns:
-    tree.column(column, width=100)
-
-# Crear barra de desplazamiento vertical
 vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
 vsb.pack(side='right', fill='y')
 
-# Crear barra de desplazamiento horizontal
 hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
 hsb.pack(side='bottom', fill='x')
 
-# Configurar el Treeview para usar las barras de desplazamiento
 tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
-
-# Empaquetar el Treeview
 tree.pack(side="left", fill="both", expand=True)
 
-# Vincular el evento de selección
 tree.bind('<ButtonRelease-1>', seleccionar_fila)
 
-# Inicializar el Treeview con datos
+# Inicializar los Treeviews con datos
 actualizar_treeview()
+actualizar_treeview_detalles()
 
 # Ejecutar la aplicación
 root.mainloop()
