@@ -83,7 +83,7 @@ def actualizar_treeview():
     for row in rows:
         tree.insert('', tk.END, values=row)
 
-# Nueva función para actualizar el Treeview de detalles
+# Función para actualizar el Treeview de detalles
 def actualizar_treeview_detalles():
     for row in tree_detalles.get_children():
         tree_detalles.delete(row)
@@ -132,9 +132,44 @@ root.title("Formulario de Artículos")
 frame_registro = tk.Frame(root, padx=10, pady=10)
 frame_registro.pack(fill="x")
 
-tk.Label(frame_registro, text="ID Registro").grid(row=0, column=0, padx=5, pady=5)
+# Función para ir al registro anterior
+def registro_anterior():
+    current_id = id_registro_combobox.get()
+    if current_id:
+        cursor.execute("SELECT MAX(id_registro) FROM REGISTROS WHERE id_registro < ?", (current_id,))
+        prev_id = cursor.fetchone()[0]
+        if prev_id:
+            id_registro_combobox.set(prev_id)
+            cargar_registro(prev_id)
+
+# Función para ir al registro siguiente
+def registro_siguiente():
+    current_id = id_registro_combobox.get()
+    if current_id:
+        cursor.execute("SELECT MIN(id_registro) FROM REGISTROS WHERE id_registro > ?", (current_id,))
+        next_id = cursor.fetchone()[0]
+        if next_id:
+            id_registro_combobox.set(next_id)
+            cargar_registro(next_id)
+
+# Función para cargar los datos de un registro
+def cargar_registro(id_registro):
+    cursor.execute("SELECT fecha_registro FROM REGISTROS WHERE id_registro = ?", (id_registro,))
+    fecha_registro = cursor.fetchone()[0]
+    fecha_registro_entry.delete(0, tk.END)
+    fecha_registro_entry.insert(0, fecha_registro)
+    actualizar_treeview_detalles()
+
+# Botones de navegación
+btn_anterior = tk.Button(frame_registro, text="<", command=registro_anterior)
+btn_anterior.grid(row=0, column=0, padx=5, pady=5)
+
+btn_siguiente = tk.Button(frame_registro, text=">", command=registro_siguiente)
+btn_siguiente.grid(row=0, column=2, padx=5, pady=5)
+
+tk.Label(frame_registro, text="ID Registro").grid(row=0, column=3, padx=5, pady=5)
 id_registro_combobox = ttk.Combobox(frame_registro)
-id_registro_combobox.grid(row=0, column=1, padx=5, pady=5)
+id_registro_combobox.grid(row=0, column=4, padx=5, pady=5)
 
 # Función para llenar el combobox con los ID de registros existentes
 def llenar_combobox():
@@ -146,13 +181,15 @@ llenar_combobox()
 
 # Función para actualizar el Treeview de detalles cuando cambia el combobox
 def on_combobox_select(event):
-    actualizar_treeview_detalles()
+    id_registro = id_registro_combobox.get()
+    if id_registro:
+        cargar_registro(id_registro)
 
 id_registro_combobox.bind("<<ComboboxSelected>>", on_combobox_select)
 
-tk.Label(frame_registro, text="Fecha Registro").grid(row=0, column=2, padx=5, pady=5)
+tk.Label(frame_registro, text="Fecha Registro").grid(row=0, column=5, padx=5, pady=5)
 fecha_registro_entry = tk.Entry(frame_registro)
-fecha_registro_entry.grid(row=0, column=3, padx=5, pady=5)
+fecha_registro_entry.grid(row=0, column=6, padx=5, pady=5)
 
 # Frame para DETALLES_REGISTROS
 frame_detalle = tk.Frame(root, padx=10, pady=10)
@@ -178,7 +215,7 @@ cantidad_entry.grid(row=0, column=7, padx=5, pady=5)
 agregar_btn = tk.Button(root, text="Agregar", command=agregar_datos)
 agregar_btn.pack(pady=10)
 
-# NUEVO CÓDIGO: Crear y configurar el Treeview para DETALLES_REGISTROS
+# Crear y configurar el Treeview para DETALLES_REGISTROS
 detalles_frame = tk.Frame(root)
 detalles_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
